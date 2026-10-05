@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的網頁程式作品集 | Web Portfolio</title>
+    <!-- Font Awesome 圖標庫 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts 典雅字體 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* ==========================================
+           1. 基礎與 INS 風格配色設 (米白/奶茶色系)
+           ========================================== */
+        :root {
+            --bg-color: #FAF8F5;          /* INS 溫柔米白色背景 */
+            --card-bg: #FFFFFF;           /* 卡片純白背景 */
+            --text-primary: #33312E;      /* 深灰色主文字 */
+            --text-secondary: #8C857B;    /* 奶茶灰次要文字 */
+            --accent-color: #D4A373;      /* INS 溫暖奶茶咖點綴色 */
+            --accent-hover: #C38E5F;      /* 懸停深奶茶色 */
+            --locked-bg: #EFECE6;         /* 未解鎖按鈕背景 */
+            --locked-text: #B5B0A8;       /* 未解鎖文字顏色 */
+            --shadow-sm: 0 4px 12px rgba(160, 145, 125, 0.08);
+            --shadow-md: 0 8px 24px rgba(160, 145, 125, 0.12);
+            --shadow-hover: 0 14px 32px rgba(160, 145, 125, 0.18);
+            --radius-pill: 50px;
+            --radius-card: 18px;
+            --transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px 60px;
+            line-height: 1.6;
+            /* 背景細緻質感點綴 */
+            background-image: radial-gradient(#E8E3DA 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        /* ==========================================
+           2. 主容器與個人個人資料區 (Profile Section)
+           ========================================== */
+        .container {
+            width: 100%;
+            max-width: 960px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 個人簡介名片區 */
+        .profile-card {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        /* 大頭貼外框與懸停動畫 */
+        .avatar-wrapper {
+            position: relative;
+            width: 110px;
+            height: 110px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            padding: 4px;
+            background: linear-gradient(135deg, #E6D5B8, #D4A373, #FAEDCD);
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
+        }
+
+        .avatar-wrapper:hover {
+            transform: scale(1.05) rotate(3deg);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 3px solid #FFFFFF;
+            background-color: #EFECE6;
+        }
+
+        /* 學生姓名與簡介 */
+        .profile-name {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .profile-title {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .profile-title i {
+            color: var(--accent-color);
+        }
+
+        /* 闖關進度條統計 */
+        .progress-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #FFFFFF;
+            padding: 6px 16px;
+            border-radius: var(--radius-pill);
+            box-shadow: var(--shadow-sm);
+            margin-top: 14px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border: 1px solid rgba(212, 163, 115, 0.2);
+        }
+
+        .progress-badge span {
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        /* ==========================================
+           3. 16 個任務關卡網格佈局 (Grid Layout)
+           ========================================== */
+        .grid-section {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .grid-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            text-align: center;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .mission-grid {
+            display: grid;
+            /* 響應式欄位：自動調配 1 欄到 4 欄 */
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 18px;
+            width: 100%;
+        }
+
+        /* 共通關卡按鈕樣式 */
+        .mission-card {
+            position: relative;
+            background: var(--card-bg);
+            border-radius: var(--radius-card);
+            padding: 22px 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(230, 225, 215, 0.6);
+            transition: var(--transition);
+            overflow: hidden;
+            cursor: pointer;
+            user-select: none;
+            min-height: 120px;
+            text-align: center;
+        }
+
+        /* ==========================================
+           4. 解鎖狀態按鈕與酷炫 Hover 動畫效果
+           ========================================== */
+        .mission-card.unlocked {
+            background: linear-gradient(145deg, #FFFFFF, #FAF6F0);
+            border-color: rgba(212, 163, 115, 0.4);
+        }
+
+        /* 閃耀光澤微光動畫條 (Unlocked Only) */
+        .mission-card.unlocked::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                120deg,
+                transparent,
+                rgba(255, 255, 255, 0.6),
+                transparent
+            );
+            transition: all 0.6s ease;
+        }
+
+        /* 未解鎖按鈕頂部邊條 Accent Line */
+        .mission-card.unlocked::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 3px;
+            background: var(--accent-color);
+            transition: var(--transition);
+            transform: translateX(-50%);
+            border-radius: 3px;
+        }
+
+        /* 解鎖按鈕的懸停 (Hover) 特效 */
+        .mission-card.unlocked:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--accent-color);
+        }
+
+        .mission-card.unlocked:hover::before {
+            left: 100%;
+        }
+
+        .mission-card.unlocked:hover::after {
+            width: 60%;
+        }
+
+        /* 週次標籤 */
+        .week-tag {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-color);
+            margin-bottom: 6px;
+            background: rgba(212, 163, 115, 0.12);
+            padding: 2px 10px;
+            border-radius: 12px;
+        }
+
+        /* 任務文字標題 */
+        .mission-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+
+        /* 關卡圖示 / 鎖頭 */
+        .mission-status-icon {
+            font-size: 1.3rem;
+            margin-top: 8px;
+            transition: var(--transition);
+        }
+
+        .unlocked .mission-status-icon {
+            color: var(--accent-color);
+        }
+
+        /* ==========================================
+           5. 未解鎖按鈕樣式 (Locked State)
+           ========================================== */
+        .mission-card.locked {
+            background-color: var(--locked-bg);
+            border-color: transparent;
+            color: var(--locked-text);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .mission-card.locked .week-tag {
+            color: var(--locked-text);
+            background: rgba(181, 176, 168, 0.15);
+        }
+
+        .mission-card.locked .mission-title {
+            color: var(--locked-text);
+        }
+
+        .mission-card.locked .mission-status-icon {
+            opacity: 0.7;
+        }
+
+        /* 未解鎖按鈕懸停微震與反應 */
+        .mission-card.locked:hover {
+            transform: translateY(-2px);
+            background-color: #E8E4DC;
+        }
+
+        .mission-card.locked:hover .mission-status-icon {
+            transform: scale(1.2) rotate(-8deg);
+        }
+
+        /* ==========================================
+           6. 提示彈窗 Toast 訊息通知
+           ========================================== */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #33312E;
+            color: #FAF8F5;
+            padding: 12px 24px;
+            border-radius: var(--radius-pill);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .toast i {
+            color: #E6C280;
+        }
+
+        /* 頁腳 Footer */
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        /* 動畫展現 */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* RWD 螢幕適應 */
+        @media (max-width: 600px) {
+            body {
+                padding: 24px 14px 40px;
+            }
+            .mission-grid {
+                grid-template-columns: repeat(2, 1fr); /* 手機版雙欄顯示，簡潔好看 */
+                gap: 12px;
+            }
+            .mission-card {
+                padding: 16px 12px;
+                min-height: 105px;
+            }
+            .mission-title {
+                font-size: 0.85rem;
+            }
+            .avatar-wrapper {
+                width: 95px;
+                height: 95px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- 1. 個人頭像與簡介區塊 -->
+        <header class="profile-card">
+            <div class="avatar-wrapper">
+                <!-- 大頭貼 (若需要替換成個人照片，修改 src 即可) -->
+                <img src="https://placehold.co/200x200/E8E3DA/33312E?text=Student" alt="個人頭像" class="avatar-img">
+            </div>
+            <!-- 學生姓名與暱稱 -->
+            <h1 class="profile-name">Alex Lin</h1>
+            <p class="profile-title">
+                <i class="fa-solid fa-code"></i> 網頁程式設計 | 學習歷程作品集
+            </p>
+            <!-- 闖關統計徽章 -->
+            <div class="progress-badge">
+                <i class="fa-solid fa-trophy"></i>
+                闖關進度：<span>2 / 16</span> 已解鎖
+            </div>
+        </header>
+
+        <!-- 2. 16 個關卡作品集網格區塊 -->
+        <main class="grid-section">
+            <h2 class="grid-title">— Course Missions —</h2>
+            
+            <div class="mission-grid">
+                
+                <!-- 【已解鎖】按鈕 1：Week 1 - 數位名片 -->
+                <a href="w1/index.html" class="mission-card unlocked">
+                    <span class="week-tag">Week 01</span>
+                    <div class="mission-title">數位名片</div>
+                    <div class="mission-status-icon">
+                        <i class="fa-solid fa-address-card"></i>
+                    </div>
+                </a>
+
+                <!-- 【已解鎖】按鈕 2：Week 2 - 今天吃甚麼? -->
+                <a href="w2/index.html" class="mission-card unlocked">
+                    <span class="week-tag">Week 02</span>
+                    <div class="mission-title">今天吃甚麼?</div>
+                    <div class="mission-status-icon">
+                        <i class="fa-solid fa-utensils"></i>
+                    </div>
+                </a>
+
+                <!-- 【未解鎖】按鈕 3 至 16 (點擊觸發未解鎖提示) -->
+                <div class="mission-card locked" onclick="showLockedToast(3)">
+                    <span class="week-tag">Week 03</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+                <div class="mission-card locked" onclick="showLockedToast(4)">
+                    <span class="week-tag">Week 04</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+                <div class="mission-card locked" onclick="showLockedToast(5)">
+                    <span class="week-tag">Week 05</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+                <div class="mission-card locked" onclick="showLockedToast(6)">
+                    <span class="week-tag">Week 06</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+                <div class="mission-card locked" onclick="showLockedToast(7)">
+                    <span class="week-tag">Week 07</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+                <div class="mission-card locked" onclick="showLockedToast(8)">
+                    <span class="week-tag">Week 08</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+                <div class="mission-card locked" onclick="showLockedToast(9)">
+                    <span class="week-tag">Week 09</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+                <div class="mission-card locked" onclick="showLockedToast(10)">
+                    <span class="week-tag">Week 10</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+                <div class="mission-card locked" onclick="showLockedToast(11)">
+                    <span class="week-tag">Week 11</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+                <div class="mission-card locked" onclick="showLockedToast(12)">
+                    <span class="week-tag">Week 12</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+                <div class="mission-card locked" onclick="showLockedToast(13)">
+                    <span class="week-tag">Week 13</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+                <div class="mission-card locked" onclick="showLockedToast(14)">
+                    <span class="week-tag">Week 14</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+                <div class="mission-card locked" onclick="showLockedToast(15)">
+                    <span class="week-tag">Week 15</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+                <div class="mission-card locked" onclick="showLockedToast(16)">
+                    <span class="week-tag">Week 16</span>
+                    <div class="mission-title">未解鎖任務</div>
+                    <div class="mission-status-icon">🔒</div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- 頁腳說明 -->
+        <footer>
+            <p>© 2026 Web Design Course Portfolio. Styled with INS aesthetic.</p>
+        </footer>
+
+    </div>
+
+    <!-- 點擊未解鎖卡片時顯示的簡潔 Toast 彈窗 -->
+    <div id="toast" class="toast">
+        <i class="fa-solid fa-lock"></i>
+        <span id="toast-text">關卡尚未開放！請先完成前面課程。</span>
+    </div>
