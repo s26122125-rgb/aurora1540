@@ -537,3 +537,31 @@
         <i class="fa-solid fa-lock"></i>
         <span id="toast-text">關卡尚未開放！請先完成前面課程。</span>
     </div>
+
+    <script>
+        // JS 腳本：處理點擊未解鎖卡片時的提示效果
+        let toastTimer = null;
+
+        function showLockedToast(weekNum) {
+            const toast = document.getElementById('toast');
+            const toastText = document.getElementById('toast-text');
+            
+            // 更新提示文字
+            toastText.textContent = `Week ${weekNum} 任務尚未開啟，持續努力解鎖吧！✨`;
+            
+            // 顯示提示
+            toast.classList.add('show');
+            
+            // 若重複點擊，重設定時器
+            if (toastTimer) {
+                clearTimeout(toastTimer);
+            }
+
+            // 2.5 秒後自動隱藏
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
