@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>韓系奶油摩卡風格 - 朋友對我的動態留言牆</title>
+  
+  <!-- 引入 Google Fonts (韓系質感手寫體與無襯線字體) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       1. 全局樣式設定 (韓系奶油摩卡風格調色盤)
+       ========================================================================== */
+    :root {
+      /* ☕️【韓系奶油摩卡調色盤 - 可在此隨時調整顏色】 */
+      --bg-color: #F7F3EE;          /* 網頁底色：暖濃燕麥奶色 (Oatmeal Cream) */
+      --card-bg: #FFFFFF;           /* 卡片底色：純白 */
+      --text-main: #3D312A;         /* 主要文字：深烘焙咖啡棕 (Dark Mocha) */
+      --text-muted: #A39388;        /* 時間/次要文字：奶茶米灰 (Taupe Milk) */
+      --accent-color: #B88E72;      /* 主調點綴色：肉桂摩卡棕 (Cinnamon Mocha) */
+      --highlight-shadow: rgba(184, 142, 114, 0.35); /* 輪播亮起時卡片的溫暖柔光陰影 */
+      --border-color: #EFE9E2;      /* 卡片預設柔和邊框 */
+
+      /* ⚙️【動畫過渡速度】 */
+      --transition-speed: 0.6s;     /* 卡片縮放與模糊過渡時間 */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* 頁面頂部 Header 標題區 */
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-family: 'Caveat', cursive; /* 手寫感質感字體 */
+      font-size: 3.5rem;
+      color: var(--text-main);
+      margin-bottom: 6px;
+      letter-spacing: 1px;
+    }
+
+    header p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      letter-spacing: 1.5px;
+    }
+
+    /* ==========================================================================
+       2. 酷炫 Loading 動畫 (摩卡咖啡漸層旋轉環)
+       ========================================================================== */
+    #loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-top: 100px;
+    }
+
+    /* 韓系摩卡咖啡暖色漸層旋轉圓環 */
+    .ins-spinner {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: conic-gradient(#e2d3c5, #c8a892, #b88e72, #8c684e, #5a4334, #e2d3c5);
+      mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #fff 0);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #fff 0);
+      animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+      margin-top: 18px;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    /* ==========================================================================
+       3. 瀑布流 (Masonry Layout) 留言牆
+       ========================================================================== */
+    .masonry-container {
+      width: 100%;
+      max-width: 1200px;
+      
+      /* 使用 CSS column-count 實作原生瀑布流高低錯落排列 */
+      column-count: 4;     /* 預設桌機 4 欄 */
+      column-gap: 20px;    /* 欄位間距 */
+      display: none;       /* 資料載入完成前隱藏 */
+    }
+
+    /* RWD 響應式斷點設定 */
+    @media (max-width: 1024px) {
+      .masonry-container { column-count: 3; } /* 平板 3 欄 */
+    }
+    @media (max-width: 768px) {
+      .masonry-container { column-count: 2; } /* 大螢幕手機 2 欄 */
+    }
+    @media (max-width: 480px) {
+      .masonry-container { column-count: 1; } /* 小螢幕手機 1 欄 */
+    }
+
+    /* 單張留言卡片樣式 (韓系拍立得溫暖風格) */
+    .message-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      break-inside: avoid; /* 防止卡片在跨欄時被切斷 */
+      box-shadow: 0 4px 15px rgba(61, 49, 42, 0.04);
+      
+      /* 輪播動畫過渡屬性 */
+      transition: all var(--transition-speed) cubic-bezier(0.25, 1, 0.5, 1);
+      position: relative;
+    }
+
+    /* 卡片頭部 (名字與時間) */
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px dashed #f2ece6;
+      padding-bottom: 8px;
+    }
+
+    .card-author {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 名字前的摩卡咖啡圓點圖標 */
+    .card-author::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--accent-color);
+    }
+
+    .card-time {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* 卡片留言內容 */
+    .card-content {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #574A41;
+      white-space: pre-wrap; /* 自動保留留言中的換行與空白 */
+      word-break: break-word;
+    }
+
+    /* ==========================================================================
+       4. 輪播展覽 Highlight 特效 (溫暖高亮與未選中項目的景深淡化)
+       ========================================================================== */
+    
+    /* 當前被選中輪播到的卡片：放大、提亮、展現肉桂摩卡邊框與軟綿發光 */
+    .message-card.highlight {
+      transform: scale(1.08) translateY(-6px);
+      border-color: var(--accent-color);
+      box-shadow: 0 12px 30px var(--highlight-shadow);
+      opacity: 1;
+      filter: blur(0px);
+      z-index: 10;
+    }
+
+    /* 當網頁處於輪播狀態時，『沒被選中』的卡片：變暗、變模糊 */
+    .masonry-container.is-looping .message-card:not(.highlight) {
+      opacity: 0.35;         /* 透明度降低至 35% */
+      filter: blur(1.5px);   /* 景深模糊 */
+      transform: scale(0.96);/* 稍微縮小 */
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 頁面頂部標題區 -->
+  <header>
+    <h1>Cafe's Whispers</h1>
+    <p>—— 寫給我的奶油摩卡動態留言牆 ——</p>
+  </header>
+
+  <!-- 1. 酷炫 Loading 動畫 (資料讀取中顯示) -->
+  <div id="loading-container">
+    <div class="ins-spinner"></div>
+    <div class="loading-text">讀取留言中...</div>
+  </div>
+
+  <!-- 2. 瀑布流留言卡片牆 -->
+  <div class="masonry-container" id="masonry-wall"></div>
+
+  <script>
+    // ==========================================================================
+    // ⚙️【核心參數與設定】
+    // ==========================================================================
+    
+    // 1. Google 試算表發佈的 CSV 網址
+    const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRH5U-fxcDCk9JJAK3nZirWrkJVSkr76A9dZccfpJfOORe2L_lgCHcQOvjYr5Qu5skXuloA-4ALP4sg/pub?output=csv';
+    
+    // 2. ⏱️【輪播秒數控制區】(單位：毫秒，3000ms = 3 秒)
+    const CAROUSEL_INTERVAL = 3000; 
+
+    // 全域變數
+    let messagesData = [];
+    let currentIndex = -1;
+    let carouselTimer = null;
+
+    // ==========================================================================
+    // 1. CSV 解析器 (相容欄位內包含逗號與多行換行內容)
+    // ==========================================================================
+    function parseCSV(csvText) {
+      const lines = [];
+      let currentRow = [];
+      let currentCell = '';
+      let insideQuotes = false;
+
+      for (let i = 0; i < csvText.length; i++) {
+        const char = csvText[i];
+        const nextChar = csvText[i + 1];
+
+        // 處理雙引號轉義與留言包裹狀態
+        if (char === '"') {
+          if (insideQuotes && nextChar === '"') {
+            currentCell += '"';
+            i++; // 跳過下一個重複的雙引號
+          } else {
+            insideQuotes = !insideQuotes;
+          }
+        } 
+        // 處理逗號區隔
+        else if (char === ',' && !insideQuotes) {
+          currentRow.push(currentCell.trim());
+          currentCell = '';
+        } 
+        // 處理換行符號 (\r, \n)
+        else if ((char === '\r' || char === '\n') && !insideQuotes) {
+          if (char === '\r' && nextChar === '\n') {
+            i++;
+          }
+          currentRow.push(currentCell.trim());
+          if (currentRow.length > 1 || currentRow[0] !== '') {
+            lines.push(currentRow);
+          }
+          currentRow = [];
+          currentCell = '';
+        } 
+        else {
+          currentCell += char;
+        }
+      }
+
+      // 補上最後一行資料
+      if (currentCell !== '' || currentRow.length > 0) {
+        currentRow.push(currentCell.trim());
+        lines.push(currentRow);
+      }
+
+      // 忽略第一行 (表頭：時間戳記, 悄悄話)
+      const dataRows = lines.slice(1);
+
+      // 欄位 0 為時間戳記，欄位 1 為悄悄話 (名字預設為「匿名朋友」)
+      return dataRows.map(row => ({
+        timestamp: row[0] || '剛剛',
+        name: '匿名朋友',
+        content: row[1] || '這是一則悄悄話...'
+      }));
+    }
+
+    // ==========================================================================
+    // 2. 動態生成卡片並渲染至 DOM 牆面
+    // ==========================================================================
+    function renderCards(data) {
+      const wall = document.getElementById('masonry-wall');
+      wall.innerHTML = '';
+
+      data.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'message-card';
+        card.setAttribute('data-index', index);
+
+        // 簡化時間格式 (僅保留日期)
+        let formattedTime = item.timestamp;
+        if (item.timestamp.includes(' ')) {
+          formattedTime = item.timestamp.split(' ')[0];
+        }
+
+        // 動態生成 HTML
+        card.innerHTML = `
+          <div class="card-header">
+            <span class="card-author">${escapeHTML(item.name)}</span>
+            <span class="card-time">${escapeHTML(formattedTime)}</span>
+          </div>
+          <div class="card-content">${escapeHTML(item.content)}</div>
+        `;
+
+        wall.appendChild(card);
+      });
+    }
+
+    // XSS 防禦機制：轉義字串避免腳本注入
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+      );
+    }
+
+    // ==========================================================================
+    // 3. 每 3 秒動態 Highlight 輪播展覽特效
+    // ==========================================================================
+    function startCarousel() {
+      const cards = document.querySelectorAll('.message-card');
+      const container = document.getElementById('masonry-wall');
+
+      if (cards.length === 0) return;
+
+      // 啟用未選中卡片暗化/模糊效果
+      container.classList.add('is-looping');
+
+      // 預設高亮第一個卡片
+      currentIndex = 0;
+      cards[currentIndex].classList.add('highlight');
+
+      // 設定每 CAROUSEL_INTERVAL 毫秒執行一次的計時器
+      carouselTimer = setInterval(() => {
+        // 1. 移除上一次選中卡片的 highlight
+        if (currentIndex >= 0 && cards[currentIndex]) {
+          cards[currentIndex].classList.remove('highlight');
+        }
+
+        // 2. 計算下一個卡片索引 (循環播放)
+        currentIndex = (currentIndex + 1) % cards.length;
+
+        // 3. 為新的卡片加上 highlight
+        const currentCard = cards[currentIndex];
+        currentCard.classList.add('highlight');
+
+        // 4. 平滑滾動確保選中的卡片維持在可視範圍內
+        currentCard.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest'
+        });
+
+      }, CAROUSEL_INTERVAL);
+    }
+
+    // ==========================================================================
+    // 4. 初始化應用程式 (Fetch 讀取 Google 試算表 CSV)
+    // ==========================================================================
+    async function initApp() {
+      const loadingEl = document.getElementById('loading-container');
+      const wallEl = document.getElementById('masonry-wall');
+
+      try {
+        // 發送 Fetch 請求取得 CSV 資料
+        const response = await fetch(GOOGLE_SHEET_CSV_URL);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP 讀取失敗！狀態碼: ${response.status}`);
+        }
+
+        const csvText = await response.text();
+        
+        // 解析 CSV 資料
+        messagesData = parseCSV(csvText);
+
+        // 若資料為空時的備用測試資料
+        if (messagesData.length === 0) {
+          messagesData = [
+            { timestamp: '2026/10/19', name: '匿名朋友', content: '希望能常常看到你的近況更新！暖色風格超級舒服 ☕️' },
+            { timestamp: '2026/10/18', name: '匿名朋友', content: '保持好心情，今天也要喝一杯好喝的拿鐵！' }
+          ];
+        }
+
+        // 渲染卡片牆面
+        renderCards(messagesData);
+
+        // 隱藏 Loading，顯示牆面
+        loadingEl.style.display = 'none';
+        wallEl.style.display = 'block';
+
+        // 啟動動態展覽輪播特效
+        startCarousel();
+
+      } catch (error) {
+        console.error('讀取 Google 試算表 CSV 發生錯誤:', error);
+
+        // 載入失敗時顯示提示介面
+        loadingEl.innerHTML = `
+          <div style="color: #a94442; text-align: center;">
+            <p style="font-size: 1.2rem; font-weight: bold; margin-bottom: 8px;">⚠️ 留言載入失敗</p>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">請確認 Google 試算表連結是否已正常發佈到網絡。</p>
+          </div>
+        `;
+      }
+    }
+
+    // 頁面載入完成後執行
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
