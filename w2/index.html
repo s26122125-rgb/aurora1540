@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>今天吃什麼？隨機抽籤機</title>
+  <!-- Google Fonts 質感字體 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-color: #F7F5F0;         /* 柔和燕麥米灰背景 */
+      --card-bg: #FFFFFF;        /* 亮白卡片襯托質感 */
+      --text-main: #4A443F;      /* 深燕麥咖字體 */
+      --text-sub: #9E958C;       /* 淺灰褐輔助字體 */
+      --primary-btn: #EADEC9;    /* 奶油燕麥按鈕 */
+      --primary-btn-hover: #DFCFA8;
+      --accent-btn: #A39682;     /* 深燕麥咖 (馬上出發按鈕) */
+      --accent-btn-hover: #8C806D;
+      --card-shadow: 0 16px 40px rgba(163, 150, 130, 0.12);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background-color: var(--bg-color);
+      background-image: radial-gradient(#E8E2D5 1.5px, transparent 1.5px);
+      background-size: 28px 28px;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 40px 28px;
+      box-shadow: var(--card-shadow);
+      text-align: center;
+      border: 1px solid #EFEAE1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .badge {
+      background-color: #F3ECE1;
+      color: var(--text-sub);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 16px;
+      border-radius: 50px;
+      letter-spacing: 1px;
+    }
+
+    /* 圖片容器 */
+    .image-box {
+      width: 100%;
+      height: 220px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid #F0ECE4;
+      display: none;
+      opacity: 0;
+      transform: scale(0.95);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .image-box.show {
+      display: block;
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .image-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* 大標題 */
+    .title {
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: var(--text-main);
+      min-height: 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .title.rolling {
+      color: var(--text-sub);
+      transform: scale(1.05);
+    }
+
+    /* 按鈕區域 */
+    .action-group {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* 按鈕基底 */
+    .btn {
+      width: 100%;
+      padding: 16px 24px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s ease;
+    }
+
+    /* 主按鈕：點我抽籤 */
+    .btn-draw {
+      background-color: var(--primary-btn);
+      color: var(--text-main);
+      box-shadow: 0 4px 12px rgba(234, 222, 201, 0.5);
+    }
+
+    .btn-draw:hover {
+      background-color: var(--primary-btn-hover);
+      transform: translateY(-2px);
+    }
+
+    .btn-draw:active {
+      transform: translateY(0);
+    }
+
+    /* 彈跳按鈕：馬上出發 */
+    .btn-go {
+      background-color: var(--accent-btn);
+      color: #FFFFFF;
+      box-shadow: 0 6px 16px rgba(163, 150, 130, 0.3);
+      display: none;
+      animation: popUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    .btn-go:hover {
+      background-color: var(--accent-btn-hover);
+      transform: translateY(-2px);
+    }
+
+    @keyframes popUp {
+      0% {
+        display: inline-flex;
+        opacity: 0;
+        transform: translateY(15px) scale(0.9);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="container">
+    <div class="card">
+      <div class="badge">EAT WHAT TODAY</div>
+
+      <!-- 美食照片展示區 -->
+      <div id="imageBox" class="image-box">
+        <img id="foodImg" src="" alt="美食照片">
+      </div>
+
+      <!-- 大標題區 -->
+      <h1 id="mainTitle" class="title">今天吃什麼？</h1>
+
+      <!-- 操作按鈕區 -->
+      <div class="action-group">
+        <button id="drawBtn" class="btn btn-draw">點我抽籤</button>
+        <a id="goMapBtn" class="btn btn-go" href="#" target="_blank" rel="noopener noreferrer">
+          馬上出發📍
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. 食物資料庫 (名稱與 Unsplash 美食圖片網址)
+      const foodList = [
+        {
+          name: "鴨肉飯",
+          image: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80"
+        },
+        {
+          name: "煎餃",
+          image: "https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?auto=format&fit=crop&w=800&q=80"
+        },
+        {
+          name: "食堂",
+          image: "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?auto=format&fit=crop&w=800&q=80"
+        },
+        {
+          name: "丹丹漢堡",
+          image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80"
+        },
+        {
+          name: "雞排",
+          image: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=800&q=80"
+        }
+      ];
+
+      // 2. 獲取 DOM 元素
+      const mainTitle = document.getElementById('mainTitle');
+      const drawBtn = document.getElementById('drawBtn');
+      const goMapBtn = document.getElementById('goMapBtn');
+      const imageBox = document.getElementById('imageBox');
+      const foodImg = document.getElementById('foodImg');
+
+      let isRolling = false;
+
+      // 3. 抽籤按鈕點擊事件
+      drawBtn.addEventListener('click', () => {
+        if (isRolling) return;
+        isRolling = true;
+
+        // 重置/隱藏先前產生的結果
+        imageBox.classList.remove('show');
+        goMapBtn.style.display = 'none';
+        mainTitle.classList.add('rolling');
+        drawBtn.disabled = true;
+
+        let rollCount = 0;
+        const totalRolls = 18; // 滾動次數
+        let speed = 60; // 初始速度 (ms)
+
+        // 平滑抽籤動畫邏輯
+        function rollAnimation() {
+          const randomIndex = Math.floor(Math.random() * foodList.length);
+          mainTitle.textContent = foodList[randomIndex].name;
+          rollCount++;
+
+          if (rollCount < totalRolls) {
+            // 越接近尾聲速度越慢，增強抽籤期盼感
+            if (rollCount > totalRolls - 5) {
+              speed += 40;
+            }
+            setTimeout(rollAnimation, speed);
+          } else {
+            // 最終抽中結果
+            const finalChoice = foodList[Math.floor(Math.random() * foodList.length)];
+            
+            // 呈現結果
+            mainTitle.textContent = finalChoice.name;
+            mainTitle.classList.remove('rolling');
+
+            // 載入美食照片
+            foodImg.src = finalChoice.image;
+            imageBox.style.display = 'block';
+            setTimeout(() => {
+              imageBox.classList.add('show');
+            }, 50);
+
+            // 設定 Google Map 搜尋連結
+            const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(finalChoice.name)}`;
+            goMapBtn.href = mapUrl;
+            
+            // 顯示彈跳按鈕
+            goMapBtn.style.display = 'inline-flex';
+
+            // 更新按鈕文字
+            drawBtn.textContent = '重新抽籤';
+            drawBtn.disabled = false;
+            isRolling = false;
+          }
+        }
+
+        rollAnimation();
+      });
+    });
+  </script>
+</body>
+</html>
