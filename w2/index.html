@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aurora - 個人數位名片</title>
+  
+  <!-- 載入 Google Fonts 字型：Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- 載入 FontAwesome 6 圖示庫庫 (Instagram & Email) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* ==========================================
+       1. 全域樣式與色調變數 (粉嫩馬卡龍色系)
+       ========================================== */
+    :root {
+      /* 全螢幕柔和馬卡龍漸層背景 */
+      --bg-gradient: linear-gradient(135deg, #fff1f2 0%, #f3e8ff 50%, #e0f2fe 100%);
+      
+      /* 卡片背景與文字顏色 */
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --text-main: #4a4052;        /* 深灰紫色，溫柔不刺眼 */
+      --text-muted: #7a6e85;       /* 次要文字 */
+      
+      /* 馬卡龍主題色 */
+      --macaron-pink: #f472b6;     /* 蜜桃粉 (Instagram) */
+      --macaron-pink-hover: #fb7185;
+      --macaron-purple: #c084fc;   /* 薰衣草紫 (Email) */
+      --macaron-purple-hover: #a855f7;
+      
+      /* 現代感陰影 */
+      --card-shadow: 0 20px 40px rgba(192, 132, 252, 0.15);
+      --btn-shadow-pink: 0 8px 20px rgba(244, 114, 182, 0.28);
+      --btn-shadow-purple: 0 8px 20px rgba(192, 132, 252, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      overflow-x: hidden;
+    }
+
+    /* ==========================================
+       2. 置中名片主體 (毛玻璃 + 微陰影)
+       ========================================== */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      width: 100%;
+      max-width: 360px;
+      border-radius: 32px;
+      padding: 42px 28px;
+      text-align: center;
+      box-shadow: var(--card-shadow);
+      border: 1.5px solid rgba(255, 255, 255, 0.9);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
+      position: relative;
+    }
+
+    /* 滑鼠懸浮微浮起效果 */
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 28px 50px rgba(192, 132, 252, 0.25);
+    }
+
+    /* ==========================================
+       3. 圓形大頭貼與漸層邊框
+       ========================================== */
+    .avatar-wrapper {
+      width: 116px;
+      height: 116px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      padding: 4px;
+      background: linear-gradient(135deg, #f472b6, #c084fc);
+      box-shadow: 0 10px 22px rgba(244, 114, 182, 0.25);
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover .avatar-wrapper {
+      transform: scale(1.03);
+    }
+
+    .avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      background-color: #ffffff;
+    }
+
+    /* ==========================================
+       4. 名字與簡介
+       ========================================== */
+    .name {
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .bio {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 30px;
+      padding: 0 8px;
+    }
+
+    /* ==========================================
+       5. 按鈕區塊
+       ========================================== */
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px 0;
+      border-radius: 20px;
+      font-size: 0.98rem;
+      font-weight: 500;
+      text-decoration: none;
+      color: #ffffff;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      cursor: pointer;
+    }
+
+    .btn i {
+      font-size: 1.25rem;
+    }
+
+    /* Instagram 蜜桃粉按鈕 */
+    .btn-instagram {
+      background-color: var(--macaron-pink);
+      box-shadow: var(--btn-shadow-pink);
+    }
+
+    .btn-instagram:hover {
+      background-color: var(--macaron-pink-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px rgba(244, 114, 182, 0.42);
+    }
+
+    /* Email 薰衣草紫按鈕 */
+    .btn-email {
+      background-color: var(--macaron-purple);
+      box-shadow: var(--btn-shadow-purple);
+    }
+
+    .btn-email:hover {
+      background-color: var(--macaron-purple-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px rgba(192, 132, 252, 0.42);
+    }
+
+    .btn:active {
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 置中名片 -->
+  <main class="card">
+    
+    <!-- 圓形大頭貼 -->
+    <div class="avatar-wrapper">
+      <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80" alt="Aurora 的大頭貼" class="avatar">
+    </div>
+
+    <!-- 姓名與簡短介紹 -->
+    <h1 class="name">Aurora</h1>
+    <p class="bio">用色彩與設計紀錄生活中的每一個美好瞬間 ✨</p>
+
+    <!-- 兩個操作按鈕 -->
+    <div class="btn-group">
+      <!-- Instagram 按鈕 -->
+      <a href="https://www.instagram.com/aurora_1540?stkn=MTNhd2IxYWNsZ3F5Zw%3D%3D&utm_source=qr" 
+         target="_blank" 
+         rel="noopener noreferrer" 
+         class="btn btn-instagram">
+        <i class="fa-brands fa-instagram"></i> Instagram
+      </a>
+
+      <!-- Email 按鈕 -->
+      <a href="mailto:s26122125@stu.edu.tw" class="btn btn-email">
+        <i class="fa-regular fa-envelope"></i> Email 我
+      </a>
+    </div>
+
+  </main>
+
+</body>
+</html>
