@@ -129,10 +129,18 @@
       <!-- Active Room Pill -->
       <div id="header-room-info" class="hidden bg-cream-200 border border-cream-300 px-3 py-1.5 rounded-xl text-xs font-medium text-cream-700 flex items-center gap-2">
         <span>房號: <strong id="header-room-code" class="text-cream-800 font-bold">----</strong></span>
-        <button onclick="copyShareLink()" class="hover:text-accent-warm transition-colors" title="複製房間連結">
-          <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+        <button onclick="openShareModal()" class="bg-cream-50 hover:bg-accent-warm hover:text-white text-cream-700 px-2 py-0.5 rounded-lg transition-colors flex items-center gap-1 shadow-xs" title="取得房間分享連結">
+          <i data-lucide="share-2" class="w-3 h-3"></i>
+          <span>分享連結</span>
         </button>
       </div>
+
+      <!-- Download / Copy Standalone HTML Button -->
+      <button onclick="downloadStandaloneHTML()" title="下載完整單一網頁檔 (.html) 供分享或部署" 
+              class="h-9 px-3 rounded-xl bg-cream-200 hover:bg-cream-300 text-cream-700 text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        <span class="hidden sm:inline">下載網頁</span>
+      </button>
 
       <!-- Secret Host Toggle Switch -->
       <button id="secret-host-toggle" onclick="toggleHostConsole()" title="切換房主模式" 
@@ -141,6 +149,51 @@
       </button>
     </div>
   </header>
+
+  <!-- Share Room Link Modal -->
+  <div id="share-modal" class="hidden fixed inset-0 z-50 bg-cream-800/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-cream-50 border border-cream-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-cream-200 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-accent-warm/15 text-accent-warm flex items-center justify-center">
+            <i data-lucide="link" class="w-4 h-4"></i>
+          </div>
+          <h3 class="font-rounded font-bold text-lg text-cream-800">邀請好友加入房間</h3>
+        </div>
+        <button onclick="closeShareModal()" class="w-8 h-8 rounded-xl bg-cream-100 hover:bg-cream-200 text-cream-600 flex items-center justify-center">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="bg-cream-100 border border-cream-200 rounded-2xl p-4 text-center space-y-1">
+        <p class="text-xs text-cream-500">目前房間代碼</p>
+        <p id="modal-room-code" class="font-rounded font-black text-3xl tracking-widest text-accent-warm">----</p>
+      </div>
+
+      <div id="modal-sandbox-hint" class="hidden bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-800 space-y-2">
+        <p class="font-bold">💡 偵測到目前為預覽或本機檔案環境</p>
+        <p>若要讓同學用手機點連結直接進房，請將下載的 HTML 上傳至公開空間（如 GitHub Pages / Netlify），並在下方貼上你的網址即可產生有效連結：</p>
+        <input type="url" id="custom-base-url-input" oninput="updateShareModalLink()" placeholder="貼上你的公開網址，例如：https://xxx.github.io/game/"
+               class="w-full px-3 py-2 rounded-xl bg-white border border-amber-300 text-cream-800 placeholder-cream-400 focus:outline-none focus:ring-2 focus:ring-accent-warm">
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-xs font-bold text-cream-700">專屬房間直達連結（點開自動帶入房號）：</label>
+        <div class="flex gap-2">
+          <input type="text" id="share-url-display" readonly
+                 class="flex-1 px-3 py-2.5 rounded-xl bg-cream-100 border border-cream-300 text-xs text-cream-700 font-mono select-all focus:outline-none">
+          <button onclick="copyShareLink()" class="bg-accent-warm hover:bg-orange-600 text-white font-bold px-4 py-2.5 rounded-xl text-xs whitespace-nowrap flex items-center gap-1 shadow-sm">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i> 複製連結
+          </button>
+        </div>
+      </div>
+
+      <div class="pt-1 flex justify-between items-center text-xs text-cream-500">
+        <span>同學打開連結後輸入暱稱即可加入！</span>
+        <button onclick="copyRoomInviteText()" class="text-accent-warm font-bold hover:underline">複製完整邀請訊息</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Main Container -->
   <main class="w-full max-w-3xl mx-auto px-4 py-4 flex-1 flex flex-col justify-center">
@@ -192,7 +245,22 @@
             <i data-lucide="crown" class="w-5 h-5 text-accent-warm"></i>
             <h3 class="font-rounded font-bold text-lg text-cream-100">隱藏房主控制台</h3>
           </div>
-          <span class="text-xs bg-cream-700 px-2.5 py-1 rounded-full text-cream-300">房主權限 Mode</span>
+          <div class="flex items-center space-x-2">
+            <button onclick="toggleGasGuide()" class="text-xs bg-cream-700 hover:bg-cream-600 px-2.5 py-1 rounded-full text-accent-soft flex items-center gap-1 transition-colors" title="查看雲端同步設定教學">
+              <i data-lucide="cloud-cog" class="w-3.5 h-3.5"></i> 雲端設定教學
+            </button>
+            <span class="text-xs bg-cream-700 px-2.5 py-1 rounded-full text-cream-300">房主權限 Mode</span>
+          </div>
+        </div>
+
+        <!-- GAS Setup Guide Drawer -->
+        <div id="gas-guide-box" class="hidden bg-cream-900/60 border border-cream-600 rounded-2xl p-4 text-xs text-cream-200 space-y-2">
+          <p class="font-bold text-accent-soft">📌 確保玩家與房主同步的 3 個檢查重點：</p>
+          <ol class="list-decimal list-inside space-y-1 text-cream-300">
+            <li>Google 試算表底部工作表名稱必須為 <code class="bg-cream-700 px-1.5 py-0.5 rounded text-white">TelepathyData</code>（第一列標題：房號、狀態、題目、答案）。</li>
+            <li>GAS 部署為「網頁應用程式」時，執行身分選<strong>「我」</strong>，誰可以存取選<strong>「所有人」</strong>。</li>
+            <li>右上角狀態顯示綠色「<strong>雲端已連線 ✦</strong>」即代表所有裝置正在透過試算表即時同步！</li>
+          </ol>
         </div>
 
         <!-- Host Actions -->
@@ -219,6 +287,19 @@
               <button id="btn-host-reset" onclick="hostResetGame()" class="bg-cream-700 hover:bg-cream-600 text-cream-200 font-medium px-3 py-2 rounded-xl text-xs transition-colors flex items-center gap-1">
                 <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> <span>重置狀態</span>
               </button>
+            </div>
+          </div>
+
+          <!-- Host Live Answer Monitor (即時監看已作答玩家與答案) -->
+          <div class="bg-cream-900/50 border border-cream-700 rounded-2xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between text-xs text-cream-300">
+              <span class="font-bold flex items-center gap-1.5">
+                <i data-lucide="users" class="w-3.5 h-3.5 text-accent-soft"></i> 即時作答監看清單
+              </span>
+              <span class="text-[11px] text-cream-400">玩家送出後自動更新</span>
+            </div>
+            <div id="host-live-answers-list" class="flex flex-wrap gap-2 pt-1">
+              <span class="text-xs text-cream-400 italic">尚未有玩家送出答案...</span>
             </div>
           </div>
         </div>
@@ -316,6 +397,10 @@
   <footer class="w-full max-w-4xl mx-auto px-4 py-6 text-center text-xs text-cream-400 flex flex-col sm:flex-row items-center justify-between border-t border-cream-200/60 mt-8 gap-2">
     <div>雲端心電感應 Telepathy Game &copy; 2026</div>
     <div class="flex items-center space-x-4">
+      <button onclick="copyFullHtmlCode()" class="hover:text-cream-700 transition-colors">複製網頁原始碼</button>
+      <span>•</span>
+      <button onclick="downloadStandaloneHTML()" class="hover:text-cream-700 transition-colors">下載 HTML</button>
+      <span>•</span>
       <button onclick="toggleHostConsole()" class="hover:text-cream-700 transition-colors">房主模式</button>
       <span>•</span>
       <button onclick="goHome()" class="hover:text-cream-700 transition-colors">回首頁</button>
@@ -339,10 +424,12 @@
       answers: {}
     };
     let previousStatus = '';
+    let previousQuestion = '';
     let lastRenderedAnswersJson = '';
     let submittedMyAnswer = false;
     let resetConfirmTimeout = null;
     let isOfflineFallback = false;
+    let isSyncingAction = false;
     let localFallbackStore = {};
 
     // Initialization on DOM Load
@@ -351,12 +438,21 @@
         lucide.createIcons();
       }
 
-      // Check URL query parameter ?room=XXXX
+      // Check URL query parameter ?room=XXXX or hash #room=XXXX
       try {
         const urlParams = new URLSearchParams(window.location.search);
-        const roomParam = urlParams.get('room');
+        let roomParam = urlParams.get('room');
+        
+        if (!roomParam && window.location.hash) {
+          const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+          roomParam = hashParams.get('room') || window.location.hash.replace(/^#/, '');
+        }
+
         if (roomParam) {
-          document.getElementById('input-room-code').value = roomParam.toUpperCase();
+          const cleanRoom = decodeURIComponent(roomParam).trim().toUpperCase();
+          document.getElementById('input-room-code').value = cleanRoom;
+          document.getElementById('input-player-name').focus();
+          showToast(`已透過連結自動帶入房號：${cleanRoom} ✦`, 'link');
         }
       } catch (e) {
         console.warn("無法讀取網址參數:", e);
@@ -457,6 +553,7 @@
       clearInterval(pollingTimer);
       currentRoom = '';
       previousStatus = '';
+      previousQuestion = '';
       lastRenderedAnswersJson = '';
       submittedMyAnswer = false;
 
@@ -495,31 +592,118 @@
       }
     }
 
+    // Toggle GAS Setup Guide
+    function toggleGasGuide() {
+      const guideEl = document.getElementById('gas-guide-box');
+      if (guideEl) guideEl.classList.toggle('hidden');
+    }
+
+    // Build Clean Shareable Room URL
+    function buildRoomShareUrl() {
+      if (!currentRoom) return '';
+      const customBaseInput = document.getElementById('custom-base-url-input');
+      const customBase = customBaseInput ? customBaseInput.value.trim() : '';
+
+      if (customBase) {
+        try {
+          const urlObj = new URL(customBase);
+          urlObj.searchParams.set('room', currentRoom);
+          urlObj.hash = '';
+          return urlObj.toString();
+        } catch (e) {
+          const separator = customBase.includes('?') ? '&' : '?';
+          return `${customBase}${separator}room=${encodeURIComponent(currentRoom)}`;
+        }
+      }
+
+      try {
+        const rawHref = window.location.href;
+        if (rawHref.startsWith('blob:') || rawHref.startsWith('about:') || rawHref.startsWith('data:')) {
+          return '';
+        }
+        const urlObj = new URL(rawHref);
+        urlObj.searchParams.set('room', currentRoom);
+        urlObj.hash = '';
+        return urlObj.toString();
+      } catch (e) {
+        return '';
+      }
+    }
+
+    // Open Share Room Link Modal
+    function openShareModal() {
+      if (!currentRoom) return;
+      document.getElementById('modal-room-code').textContent = currentRoom;
+      updateShareModalLink();
+      document.getElementById('share-modal').classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeShareModal() {
+      document.getElementById('share-modal').classList.add('hidden');
+    }
+
+    function updateShareModalLink() {
+      const generatedUrl = buildRoomShareUrl();
+      const rawHref = window.location.href;
+      const isNonPublic = rawHref.startsWith('blob:') || rawHref.startsWith('about:') || rawHref.startsWith('data:') || rawHref.startsWith('file:');
+      const hintEl = document.getElementById('modal-sandbox-hint');
+      const displayEl = document.getElementById('share-url-display');
+
+      if (isNonPublic) {
+        hintEl.classList.remove('hidden');
+      } else {
+        hintEl.classList.add('hidden');
+      }
+
+      if (generatedUrl) {
+        displayEl.value = generatedUrl;
+      } else {
+        displayEl.value = `請先部署網頁或於上方貼上網址（房號：${currentRoom}）`;
+      }
+    }
+
+    // Copy Text Helper
+    function copyTextToClipboard(text, successMsg) {
+      const tempInput = document.createElement('textarea');
+      tempInput.value = text;
+      tempInput.style.position = 'fixed';
+      tempInput.style.opacity = '0';
+      document.body.appendChild(tempInput);
+      tempInput.focus();
+      tempInput.select();
+
+      try {
+        document.execCommand('copy');
+        showToast(successMsg, 'check');
+      } catch (err) {
+        showToast(`複製失敗，請手動選取複製`, 'alert-circle');
+      }
+      document.body.removeChild(tempInput);
+    }
+
     // Copy Shareable Room Link
     function copyShareLink() {
       if (!currentRoom) return;
+      const shareUrl = buildRoomShareUrl();
 
-      let shareUrl = '';
-      try {
-        const cleanHref = window.location.href.replace(/^blob:/, '');
-        const urlObj = new URL(cleanHref);
-        urlObj.searchParams.set('room', currentRoom);
-        shareUrl = urlObj.toString();
-      } catch (e) {
-        shareUrl = `房間代碼：${currentRoom}`;
+      if (shareUrl && !shareUrl.startsWith('file:')) {
+        copyTextToClipboard(shareUrl, `已複製房間直達連結！點開自動帶入房號 ${currentRoom} ✦`);
+      } else if (shareUrl.startsWith('file:')) {
+        copyTextToClipboard(shareUrl, `已複製本機檔案房號連結 (?room=${currentRoom})！`);
+      } else {
+        copyRoomInviteText();
       }
+    }
 
-      const tempInput = document.createElement('input');
-      tempInput.value = shareUrl;
-      document.body.appendChild(tempInput);
-      tempInput.select();
-      try {
-        document.execCommand('copy');
-        showToast(`已複製房號連結 (${currentRoom})！快分享給好友吧`, 'check');
-      } catch (err) {
-        showToast(`房間代碼：${currentRoom}`, 'info');
-      }
-      document.body.removeChild(tempInput);
+    // Copy Full Invite Message with Room Code & Link
+    function copyRoomInviteText() {
+      if (!currentRoom) return;
+      const shareUrl = buildRoomShareUrl();
+      const inviteMsg = shareUrl && !shareUrl.startsWith('file:')
+        ? `快來一起玩「雲端心電感應」！\n點擊連結直接加入房間：${shareUrl}\n（或手動輸入房間代碼：${currentRoom}）`
+        : `快來一起玩「雲端心電感應」！\n請開啟遊戲網頁並輸入房間代碼：【 ${currentRoom} 】`;
+      copyTextToClipboard(inviteMsg, `已複製房間邀請訊息（房號 ${currentRoom}）！`);
     }
 
     // Manual Reconnect Cloud
@@ -530,16 +714,16 @@
 
     // API Interaction: Fetch Current Game State (GET)
     async function fetchGameState() {
-      if (!currentRoom) return;
+      if (!currentRoom || isSyncingAction) return;
 
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        const url = `${GAS_API_URL}?room=${encodeURIComponent(currentRoom)}`;
+        // Append timestamp _t to prevent browser/CDN caching old room state
+        const url = `${GAS_API_URL}?room=${encodeURIComponent(currentRoom)}&_t=${Date.now()}`;
         const response = await fetch(url, {
           method: 'GET',
-          cache: 'no-store',
           redirect: 'follow',
           signal: controller.signal
         });
@@ -550,11 +734,12 @@
         const text = await response.text();
         const data = JSON.parse(text);
         
+        // Sync local mirror with authoritative cloud state
         localFallbackStore[currentRoom] = data;
         setConnectionMode(false);
         updateGameUI(data);
       } catch (err) {
-        console.warn("GAS GET 連線暫時受限，使用本機暫存顯示:", err);
+        console.warn("GAS GET 連線暫時受限:", err);
         setConnectionMode(true);
         if (!localFallbackStore[currentRoom]) {
           localFallbackStore[currentRoom] = { status: 'setup', question: '', answers: {} };
@@ -569,7 +754,7 @@
       const badge = document.getElementById('connection-badge');
       if (!badge) return;
       if (offline) {
-        badge.textContent = '本機備援 (點此重連)';
+        badge.textContent = '離線備援 (點此重連)';
         badge.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 cursor-pointer';
       } else {
         badge.textContent = '雲端已連線 ✦';
@@ -577,7 +762,7 @@
       }
     }
 
-    // Local Fallback State Update
+    // Local Fallback State Update (Optimistic UI)
     function applyLocalFallbackAction(payload) {
       if (!localFallbackStore[currentRoom]) {
         localFallbackStore[currentRoom] = { status: 'setup', question: '', answers: {} };
@@ -600,24 +785,37 @@
       updateGameUI(roomState);
     }
 
-    // Send Action Payload to GAS (POST)
+    // Send Action Payload to GAS (POST) & Synchronize All Clients
     async function postGASAction(payload) {
       payload.room = currentRoom;
+      isSyncingAction = true;
+      
+      // Immediate optimistic UI update for snappy experience
       applyLocalFallbackAction(payload);
 
       try {
-        await fetch(GAS_API_URL, {
+        // Standard CORS text/plain POST compatible with Google Apps Script doPost(e)
+        const response = await fetch(GAS_API_URL, {
           method: 'POST',
-          mode: 'no-cors',
+          redirect: 'follow',
           headers: {
             'Content-Type': 'text/plain;charset=utf-8'
           },
           body: JSON.stringify(payload)
         });
-        setTimeout(fetchGameState, 1000);
+
+        if (response.ok) {
+          setConnectionMode(false);
+        }
       } catch (err) {
-        console.warn("GAS POST 傳送異常:", err);
+        console.warn("GAS POST 連線異常:", err);
         setConnectionMode(true);
+      } finally {
+        // Release sync lock and fetch fresh authoritative state from Google Sheet
+        setTimeout(() => {
+          isSyncingAction = false;
+          fetchGameState();
+        }, 600);
       }
     }
 
@@ -637,9 +835,14 @@
       if (hostSubmittedCount) hostSubmittedCount.textContent = answerCount;
 
       const isStatusChanged = previousStatus !== data.status;
+      const isQuestionChanged = previousQuestion !== (data.question || '');
       previousStatus = data.status;
+      previousQuestion = data.question || '';
 
       questionEl.textContent = data.question ? data.question : "等待房主出題中... ☕️";
+
+      // Update Host Live Monitor List (房主即時看到誰交卷了與答案內容)
+      renderHostLiveAnswers(answersObj);
 
       if (data.status === 'setup') {
         statusText.textContent = "準備中 (Setup)";
@@ -648,7 +851,7 @@
         document.getElementById('section-answer-form').classList.remove('hidden');
         document.getElementById('section-reveal-grid').classList.add('hidden');
         
-        if (isStatusChanged) {
+        if (isStatusChanged || isQuestionChanged) {
           submittedMyAnswer = false;
           document.getElementById('input-player-answer').value = '';
           document.getElementById('answer-input-container').classList.remove('hidden');
@@ -661,6 +864,17 @@
 
         document.getElementById('section-answer-form').classList.remove('hidden');
         document.getElementById('section-reveal-grid').classList.add('hidden');
+
+        // If host published a brand new question, reset player's previous submission state and notify
+        if (isQuestionChanged && data.question) {
+          submittedMyAnswer = false;
+          document.getElementById('input-player-answer').value = '';
+          document.getElementById('answer-input-container').classList.remove('hidden');
+          document.getElementById('answer-submitted-banner').classList.add('hidden');
+          if (!isHost) {
+            showToast(`新題目來囉：${data.question}`, 'sparkles');
+          }
+        }
 
         if (answersObj[playerName] && !submittedMyAnswer) {
           submittedMyAnswer = true;
@@ -682,6 +896,29 @@
           renderFlipCards(answersObj);
         }
       }
+    }
+
+    // Render Live Player Answers inside Host Console
+    function renderHostLiveAnswers(answersObj) {
+      const listEl = document.getElementById('host-live-answers-list');
+      if (!listEl) return;
+
+      const players = Object.keys(answersObj);
+      if (players.length === 0) {
+        listEl.innerHTML = `<span class="text-xs text-cream-400 italic">尚未有玩家送出答案...</span>`;
+        return;
+      }
+
+      const escapeHTML = (str) => String(str).replace(/[&<>"']/g, (m) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+
+      listEl.innerHTML = players.map(name => `
+        <div class="inline-flex items-center gap-1.5 bg-cream-700/80 border border-cream-600 px-3 py-1 rounded-xl text-xs">
+          <span class="font-bold text-accent-soft">${escapeHTML(name)}：</span>
+          <span class="text-cream-50 font-medium">${escapeHTML(answersObj[name])}</span>
+        </div>
+      `).join('');
     }
 
     // Submit Player Answer
@@ -823,6 +1060,56 @@
       btn.classList.add('bg-cream-700', 'hover:bg-cream-600');
       btn.classList.remove('bg-red-500', 'hover:bg-red-600', 'text-white');
       btnText.textContent = '重置狀態';
+    }
+
+    // Generate Clean Standalone HTML String
+    function getCleanStandaloneHTML() {
+      const clone = document.documentElement.cloneNode(true);
+      // Reset runtime dynamic states so downloaded copy starts clean at login screen
+      const loginView = clone.querySelector('#view-login');
+      const gameView = clone.querySelector('#view-game');
+      const headerRoom = clone.querySelector('#header-room-info');
+      const hostConsole = clone.querySelector('#host-console');
+      if (loginView) loginView.classList.remove('hidden');
+      if (gameView) gameView.classList.add('hidden');
+      if (headerRoom) headerRoom.classList.add('hidden');
+      if (hostConsole) hostConsole.classList.add('hidden');
+      return '<!DOCTYPE html>\n' + clone.outerHTML;
+    }
+
+    // Copy Complete Standalone HTML Code to Clipboard
+    function copyFullHtmlCode() {
+      const fullHtml = getCleanStandaloneHTML();
+      const tempInput = document.createElement('textarea');
+      tempInput.value = fullHtml;
+      tempInput.style.position = 'fixed';
+      tempInput.style.opacity = '0';
+      document.body.appendChild(tempInput);
+      tempInput.focus();
+      tempInput.select();
+
+      try {
+        document.execCommand('copy');
+        showToast('已複製完整網頁原始碼！可直接貼上存成 .html 檔使用 ✦', 'copy');
+      } catch (err) {
+        showToast('複製失敗，請嘗試點擊「下載網頁」按鈕', 'alert-circle');
+      }
+      document.body.removeChild(tempInput);
+    }
+
+    // Download Complete Standalone HTML File
+    function downloadStandaloneHTML() {
+      const fullHtml = getCleanStandaloneHTML();
+      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '雲端心電感應_TelepathyGame.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('已開始下載完整網頁檔 (雲端心電感應_TelepathyGame.html) ✦', 'download');
     }
   </script>
 </body>
