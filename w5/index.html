@@ -94,15 +94,6 @@
       border: 2px solid #E8D8CE;
     }
 
-    /* Shimmer effect for waiting state */
-    @keyframes pulseGlow {
-      0%, 100% { opacity: 0.8; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.02); }
-    }
-    .pulse-glow {
-      animation: pulseGlow 2.5s infinite ease-in-out;
-    }
-
     /* Custom Toast Notification */
     #toast {
       transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
@@ -143,7 +134,7 @@
         </button>
       </div>
 
-      <!-- Secret Host Toggle Switch (Discreet INS Button) -->
+      <!-- Secret Host Toggle Switch -->
       <button id="secret-host-toggle" onclick="toggleHostConsole()" title="切換房主模式" 
               class="w-9 h-9 rounded-xl bg-cream-200 hover:bg-cream-300 text-cream-700 flex items-center justify-center transition-all shadow-sm">
         <i data-lucide="crown" class="w-4 h-4"></i>
@@ -256,9 +247,9 @@
             已答: <span id="player-answers-count" class="font-bold text-cream-800">0</span> 人
           </div>
           <div class="text-cream-400">|</div>
-          <div id="connection-badge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cream-200 text-cream-700" title="目前資料同步模式">
+          <button onclick="manualRetryCloud()" id="connection-badge" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-cream-200 text-cream-700 hover:opacity-80 transition-opacity cursor-pointer" title="點擊立即重新同步雲端">
             連線偵測中...
-          </div>
+          </button>
         </div>
       </div>
 
@@ -352,7 +343,7 @@
     let submittedMyAnswer = false;
     let resetConfirmTimeout = null;
     let isOfflineFallback = false;
-    let localFallbackStore = {}; // 當 GAS 伺服器無法連線時的本機備援記憶體
+    let localFallbackStore = {};
 
     // Initialization on DOM Load
     window.addEventListener('DOMContentLoaded', () => {
@@ -371,7 +362,7 @@
         console.warn("無法讀取網址參數:", e);
       }
 
-      // Support Enter key on login inputs
+      // Support Enter key on inputs
       document.getElementById('input-player-name').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') joinGame();
       });
@@ -451,9 +442,7 @@
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.set('room', currentRoom);
         window.history.pushState({}, '', newUrl);
-      } catch (e) {
-        // Ignore SecurityError in blob/sandboxed iframe
-      }
+      } catch (e) {}
 
       showToast(`歡迎 ${playerName} 加入房間 ${currentRoom}！`, 'sparkles');
 
@@ -479,9 +468,7 @@
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete('room');
         window.history.pushState({}, '', newUrl);
-      } catch (e) {
-        // Ignore SecurityError in blob/sandboxed iframe
-      }
+      } catch (e) {}
     }
 
     // Toggle Secret Host Control Console
@@ -535,16 +522,24 @@
       document.body.removeChild(tempInput);
     }
 
+    // Manual Reconnect Cloud
+    function manualRetryCloud() {
+      showToast('正在重新同步雲端資料...', 'refresh-cw');
+      fetchGameState();
+    }
+
     // API Interaction: Fetch Current Game State (GET)
     async function fetchGameState() {
       if (!currentRoom) return;
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        const response = await fetch(`${GAS_API_URL}?room=${encodeURIComponent(currentRoom)}&t=${Date.now()}`, {
+        const url = `${GAS_API_URL}?room=${encodeURIComponent(currentRoom)}`;
+        const response = await fetch(url, {
           method: 'GET',
+          cache: 'no-store',
           redirect: 'follow',
           signal: controller.signal
         });
@@ -552,11 +547,14 @@
 
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
-        const data = await response.json();
+        const text = await response.text();
+        const data = JSON.parse(text);
+        
+        localFallbackStore[currentRoom] = data;
         setConnectionMode(false);
         updateGameUI(data);
       } catch (err) {
-        console.warn("GAS GET 連線受限，自動切換至本機備援同步模式:", err);
+        console.warn("GAS GET 連線暫時受限，使用本機暫存顯示:", err);
         setConnectionMode(true);
         if (!localFallbackStore[currentRoom]) {
           localFallbackStore[currentRoom] = { status: 'setup', question: '', answers: {} };
@@ -565,21 +563,21 @@
       }
     }
 
-    // 更新連線狀態顯示標籤
+    // Update Connection Badge
     function setConnectionMode(offline) {
       isOfflineFallback = offline;
       const badge = document.getElementById('connection-badge');
       if (!badge) return;
       if (offline) {
-        badge.textContent = '本機備援模式';
-        badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300';
+        badge.textContent = '本機備援 (點此重連)';
+        badge.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 cursor-pointer';
       } else {
-        badge.textContent = '雲端已連線';
-        badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
+        badge.textContent = '雲端已連線 ✦';
+        badge.className = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-pointer';
       }
     }
 
-    // 本機備援狀態更新邏輯 (模擬後端 GAS doPost 行為)
+    // Local Fallback State Update
     function applyLocalFallbackAction(payload) {
       if (!localFallbackStore[currentRoom]) {
         localFallbackStore[currentRoom] = { status: 'setup', question: '', answers: {} };
@@ -605,16 +603,9 @@
     // Send Action Payload to GAS (POST)
     async function postGASAction(payload) {
       payload.room = currentRoom;
-
-      // 同步更新本機備援資料，確保無縫銜接
       applyLocalFallbackAction(payload);
 
-      if (isOfflineFallback) {
-        return;
-      }
-
       try {
-        // 使用 no-cors 模式可確保就算 GAS 轉址不帶 CORS Header 也能順利寫入 Google 試算表
         await fetch(GAS_API_URL, {
           method: 'POST',
           mode: 'no-cors',
@@ -623,15 +614,14 @@
           },
           body: JSON.stringify(payload)
         });
-        // 延遲一小段時間讓 Google 試算表寫入完成後再輪詢同步
-        setTimeout(fetchGameState, 600);
+        setTimeout(fetchGameState, 1000);
       } catch (err) {
-        console.warn("GAS POST 寫入異常，已保留於本機備援模式:", err);
+        console.warn("GAS POST 傳送異常:", err);
         setConnectionMode(true);
       }
     }
 
-    // Render & Sync UI View State based on GAS response data
+    // Render & Sync UI View State
     function updateGameUI(data) {
       gameState = data;
       const statusText = document.getElementById('status-text');
@@ -646,14 +636,11 @@
       answersCountEl.textContent = answerCount;
       if (hostSubmittedCount) hostSubmittedCount.textContent = answerCount;
 
-      // Detect Status transition to trigger animations
       const isStatusChanged = previousStatus !== data.status;
       previousStatus = data.status;
 
-      // Render Question
       questionEl.textContent = data.question ? data.question : "等待房主出題中... ☕️";
 
-      // Render Sections based on game status
       if (data.status === 'setup') {
         statusText.textContent = "準備中 (Setup)";
         statusDot.className = "w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse";
@@ -661,7 +648,6 @@
         document.getElementById('section-answer-form').classList.remove('hidden');
         document.getElementById('section-reveal-grid').classList.add('hidden');
         
-        // Reset player answer input status
         if (isStatusChanged) {
           submittedMyAnswer = false;
           document.getElementById('input-player-answer').value = '';
@@ -676,7 +662,6 @@
         document.getElementById('section-answer-form').classList.remove('hidden');
         document.getElementById('section-reveal-grid').classList.add('hidden');
 
-        // Check if player has already submitted an answer in the synced backend data
         if (answersObj[playerName] && !submittedMyAnswer) {
           submittedMyAnswer = true;
           document.getElementById('my-submitted-answer').textContent = answersObj[playerName];
@@ -691,7 +676,6 @@
         document.getElementById('section-answer-form').classList.add('hidden');
         document.getElementById('section-reveal-grid').classList.remove('hidden');
 
-        // 僅在狀態剛切換為 revealed 或答案內容有更新時，才重新渲染 3D 卡片，避免輪詢閃爍
         const currentAnswersJson = JSON.stringify(answersObj);
         if (isStatusChanged || currentAnswersJson !== lastRenderedAnswersJson) {
           lastRenderedAnswersJson = currentAnswersJson;
@@ -743,18 +727,16 @@
         return;
       }
 
-      // 防止 XSS 注入的簡易跳脫函式
       const escapeHTML = (str) => String(str).replace(/[&<>"']/g, (m) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
       }[m]));
 
-      // Rebuild Card Elements
       container.innerHTML = players.map((name, idx) => {
         const ans = answersObj[name];
         return `
           <div class="h-40 perspective-1000">
             <div id="card-inner-${idx}" class="card-inner shadow-md hover:shadow-lg rounded-2xl border border-cream-200">
-              <!-- Front Face (Closed State) -->
+              <!-- Front Face -->
               <div class="card-front p-4 font-rounded">
                 <div class="w-8 h-8 rounded-full bg-cream-100/60 flex items-center justify-center text-cream-700 mb-2">
                   <i data-lucide="help-circle" class="w-4 h-4"></i>
@@ -762,7 +744,7 @@
                 <div class="font-bold text-sm truncate w-full px-2">${escapeHTML(name)}</div>
                 <div class="text-[10px] text-cream-500 mt-1">準備揭曉</div>
               </div>
-              <!-- Back Face (Revealed Answer) -->
+              <!-- Back Face -->
               <div class="card-back p-4 font-rounded">
                 <span class="text-[10px] font-bold text-accent-warm tracking-wider uppercase truncate max-w-full">${escapeHTML(name)}</span>
                 <p class="font-bold text-lg text-cream-800 my-auto break-all px-1 leading-snug">${escapeHTML(ans)}</p>
@@ -777,14 +759,13 @@
 
       lucide.createIcons();
 
-      // Trigger 3D CSS flip class transition
       setTimeout(() => {
         players.forEach((_, idx) => {
           const cardEl = document.getElementById(`card-inner-${idx}`);
           if (cardEl && cardEl.parentElement) {
             setTimeout(() => {
               cardEl.parentElement.classList.add('card-flipped');
-            }, idx * 180); // Sequentially flip cards with 180ms delay
+            }, idx * 180);
           }
         });
       }, 100);
@@ -811,7 +792,6 @@
       showToast('指令已發出：同步全體 3D 開牌！', 'eye');
     }
 
-    // 改用二次點擊確認機制，取代瀏覽器容易阻擋的 confirm()
     function hostResetGame() {
       const btn = document.getElementById('btn-host-reset');
       const btnText = btn.querySelector('span');
