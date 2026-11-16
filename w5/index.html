@@ -393,7 +393,11 @@
       document.getElementById('view-login').classList.remove('hidden');
       document.getElementById('view-game').classList.add('hidden');
       document.getElementById('header-room-info').classList.add('hidden');
-      window.history.pushState({}, document.title, window.location.pathname);
+      try {
+        window.history.pushState({}, document.title, window.location.pathname);
+      } catch (e) {
+        console.warn('History pushState restricted in iframe environment.');
+      }
     }
 
     // Toggle Secret Host Console
@@ -417,7 +421,11 @@
 
     // Copy Shareable URL Link
     function copyShareLink() {
-      const shareUrl = `${window.location.origin}${window.location.pathname}?room=${currentRoom}`;
+      let baseUrl = window.location.href.split('?')[0];
+      if (baseUrl.startsWith('blob:')) {
+        baseUrl = window.location.origin;
+      }
+      const shareUrl = `${baseUrl}?room=${currentRoom}`;
       const tempInput = document.createElement('input');
       tempInput.value = shareUrl;
       document.body.appendChild(tempInput);
@@ -449,9 +457,13 @@
       document.getElementById('header-room-info').classList.remove('hidden');
       document.getElementById('display-player-name').textContent = playerName;
 
-      // Update URL silently
-      const newUrl = `${window.location.pathname}?room=${currentRoom}`;
-      window.history.pushState({ path: newUrl }, '', newUrl);
+      // Update URL safely (handles blob/iframe restrictions gracefully)
+      try {
+        const newUrl = `${window.location.pathname}?room=${currentRoom}`;
+        window.history.pushState({ path: newUrl }, '', newUrl);
+      } catch (e) {
+        console.warn('History pushState restricted in preview iframe mode.');
+      }
 
       // Switch View
       document.getElementById('view-login').classList.add('hidden');
