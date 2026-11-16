@@ -225,8 +225,8 @@
               <button onclick="hostRevealAnswers()" class="bg-accent-lavender hover:bg-purple-600 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors flex items-center gap-1.5 shadow-sm">
                 <i data-lucide="eye" class="w-4 h-4"></i> 全體 3D 翻牌開牌
               </button>
-              <button onclick="hostResetGame()" class="bg-cream-700 hover:bg-cream-600 text-cream-200 font-medium px-3 py-2 rounded-xl text-xs transition-colors flex items-center gap-1">
-                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 重置狀態
+              <button id="btn-host-reset" onclick="hostResetGame()" class="bg-cream-700 hover:bg-cream-600 text-cream-200 font-medium px-3 py-2 rounded-xl text-xs transition-colors flex items-center gap-1">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> <span>重置狀態</span>
               </button>
             </div>
           </div>
@@ -254,6 +254,10 @@
           <div class="text-cream-400">|</div>
           <div class="text-cream-600 font-medium">
             已答: <span id="player-answers-count" class="font-bold text-cream-800">0</span> 人
+          </div>
+          <div class="text-cream-400">|</div>
+          <div id="connection-badge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cream-200 text-cream-700" title="目前資料同步模式">
+            連線偵測中...
           </div>
         </div>
       </div>
@@ -344,137 +348,191 @@
       answers: {}
     };
     let previousStatus = '';
+    let lastRenderedAnswersJson = '';
     let submittedMyAnswer = false;
+    let resetConfirmTimeout = null;
+    let isOfflineFallback = false;
+    let localFallbackStore = {}; // 當 GAS 伺服器無法連線時的本機備援記憶體
 
     // Initialization on DOM Load
     window.addEventListener('DOMContentLoaded', () => {
-      lucide.createIcons();
-      checkUrlQueryParams();
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+
+      // Check URL query parameter ?room=XXXX
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomParam = urlParams.get('room');
+        if (roomParam) {
+          document.getElementById('input-room-code').value = roomParam.toUpperCase();
+        }
+      } catch (e) {
+        console.warn("無法讀取網址參數:", e);
+      }
+
+      // Support Enter key on login inputs
+      document.getElementById('input-player-name').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') joinGame();
+      });
+      document.getElementById('input-room-code').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') joinGame();
+      });
+      document.getElementById('input-player-answer').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') submitAnswer();
+      });
+      document.getElementById('host-question-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') hostSetQuestion();
+      });
     });
 
-    // Check if Room Parameter exists in URL query string (?room=1234)
-    function checkUrlQueryParams() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const roomParam = urlParams.get('room');
-      if (roomParam) {
-        document.getElementById('input-room-code').value = roomParam.trim().toUpperCase();
-        showToast(`已自動帶入房間代碼：${roomParam.toUpperCase()}`);
-      }
-    }
-
-    // Toast Alert Helper
-    function showToast(msg, icon = 'info') {
+    // Toast Notification Helper
+    let toastTimer = null;
+    function showToast(message, iconName = 'info') {
       const toast = document.getElementById('toast');
-      const toastMsg = document.getElementById('toast-message');
-      const toastIcon = document.getElementById('toast-icon');
+      const msgEl = document.getElementById('toast-message');
+      const iconEl = document.getElementById('toast-icon');
 
-      toastMsg.textContent = msg;
-      toastIcon.setAttribute('data-lucide', icon);
-      lucide.createIcons();
+      if (!toast || !msgEl) return;
 
-      toast.classList.remove('opacity-0', '-translate-y-20', 'pointer-events-none');
-      toast.classList.add('opacity-100', 'translate-y-0');
+      msgEl.textContent = message;
+      if (iconEl && window.lucide) {
+        iconEl.setAttribute('data-lucide', iconName);
+        lucide.createIcons();
+      }
 
-      setTimeout(() => {
-        toast.classList.remove('opacity-100', 'translate-y-0');
-        toast.classList.add('opacity-0', '-translate-y-20', 'pointer-events-none');
+      toast.classList.remove('-translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('-translate-y-20', 'opacity-0');
       }, 3000);
     }
 
-    // Quick Random Room Code Generator
+    // Generate Random 4-Digit Room Code
     function generateRandomRoom() {
-      const code = Math.floor(1000 + Math.random() * 9000).toString();
-      document.getElementById('input-room-code').value = code;
+      const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
+      document.getElementById('input-room-code').value = randomCode;
+      showToast(`已產生隨機房號：${randomCode}`, 'shuffle');
     }
 
-    // Navigation & Home
-    function goHome() {
-      if (pollingTimer) clearInterval(pollingTimer);
-      document.getElementById('view-login').classList.remove('hidden');
-      document.getElementById('view-game').classList.add('hidden');
-      document.getElementById('header-room-info').classList.add('hidden');
-      try {
-        window.history.pushState({}, document.title, window.location.pathname);
-      } catch (e) {
-        console.warn('History pushState restricted in iframe environment.');
-      }
-    }
-
-    // Toggle Secret Host Console
-    function toggleHostConsole() {
-      isHost = !isHost;
-      const hostConsole = document.getElementById('host-console');
-      const hostBtn = document.getElementById('secret-host-toggle');
-
-      if (isHost) {
-        hostConsole.classList.remove('hidden');
-        hostBtn.classList.add('bg-accent-warm', 'text-white');
-        hostBtn.classList.remove('bg-cream-200', 'text-cream-700');
-        showToast('已開啟房主主控台！', 'crown');
-      } else {
-        hostConsole.classList.add('hidden');
-        hostBtn.classList.remove('bg-accent-warm', 'text-white');
-        hostBtn.classList.add('bg-cream-200', 'text-cream-700');
-        showToast('已關閉房主模式');
-      }
-    }
-
-    // Copy Shareable URL Link
-    function copyShareLink() {
-      let baseUrl = window.location.href.split('?')[0];
-      if (baseUrl.startsWith('blob:')) {
-        baseUrl = window.location.origin;
-      }
-      const shareUrl = `${baseUrl}?room=${currentRoom}`;
-      const tempInput = document.createElement('input');
-      tempInput.value = shareUrl;
-      document.body.appendChild(tempInput);
-      tempInput.select();
-      document.execCommand('copy');
-      document.body.removeChild(tempInput);
-      showToast('房間專屬連結已複製！可傳給同學加入');
-    }
-
-    // Join Room logic
+    // Join or Create Room
     function joinGame() {
       const nameInput = document.getElementById('input-player-name').value.trim();
-      const roomInput = document.getElementById('input-room-code').value.trim().toUpperCase();
+      let roomInput = document.getElementById('input-room-code').value.trim().toUpperCase();
 
       if (!nameInput) {
-        showToast('請輸入你的暱稱！', 'alert-circle');
+        showToast('請先輸入你的玩家暱稱喔！', 'alert-circle');
+        document.getElementById('input-player-name').focus();
         return;
       }
+
       if (!roomInput) {
-        showToast('請輸入 4 位數房間代碼！', 'alert-circle');
-        return;
+        roomInput = Math.floor(1000 + Math.random() * 9000).toString();
+        document.getElementById('input-room-code').value = roomInput;
       }
 
       playerName = nameInput;
       currentRoom = roomInput;
 
-      // Update Header Info
+      // Update Header & UI Info
+      document.getElementById('display-player-name').textContent = playerName;
       document.getElementById('header-room-code').textContent = currentRoom;
       document.getElementById('header-room-info').classList.remove('hidden');
-      document.getElementById('display-player-name').textContent = playerName;
 
-      // Update URL safely (handles blob/iframe restrictions gracefully)
-      try {
-        const newUrl = `${window.location.pathname}?room=${currentRoom}`;
-        window.history.pushState({ path: newUrl }, '', newUrl);
-      } catch (e) {
-        console.warn('History pushState restricted in preview iframe mode.');
-      }
-
-      // Switch View
+      // Switch Views
       document.getElementById('view-login').classList.add('hidden');
       document.getElementById('view-game').classList.remove('hidden');
 
-      // Immediate Fetch & Polling Start
-      fetchGameState();
-      if (pollingTimer) clearInterval(pollingTimer);
-      pollingTimer = setInterval(fetchGameState, 2500);
+      // Safely update URL query without breaking sandboxed iframe
+      try {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('room', currentRoom);
+        window.history.pushState({}, '', newUrl);
+      } catch (e) {
+        // Ignore SecurityError in blob/sandboxed iframe
+      }
 
-      showToast(`成功加入房間 ${currentRoom}`);
+      showToast(`歡迎 ${playerName} 加入房間 ${currentRoom}！`, 'sparkles');
+
+      // Start Polling Game State
+      fetchGameState();
+      clearInterval(pollingTimer);
+      pollingTimer = setInterval(fetchGameState, 2500);
+    }
+
+    // Return to Lobby / Home
+    function goHome() {
+      clearInterval(pollingTimer);
+      currentRoom = '';
+      previousStatus = '';
+      lastRenderedAnswersJson = '';
+      submittedMyAnswer = false;
+
+      document.getElementById('view-game').classList.add('hidden');
+      document.getElementById('view-login').classList.remove('hidden');
+      document.getElementById('header-room-info').classList.add('hidden');
+
+      try {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('room');
+        window.history.pushState({}, '', newUrl);
+      } catch (e) {
+        // Ignore SecurityError in blob/sandboxed iframe
+      }
+    }
+
+    // Toggle Secret Host Control Console
+    function toggleHostConsole() {
+      if (!currentRoom) {
+        showToast('請先輸入暱稱與房號進入房間，即可開啟房主控制台 👑', 'crown');
+        return;
+      }
+
+      isHost = !isHost;
+      const consoleEl = document.getElementById('host-console');
+      const toggleBtn = document.getElementById('secret-host-toggle');
+
+      if (isHost) {
+        consoleEl.classList.remove('hidden');
+        toggleBtn.classList.remove('bg-cream-200', 'text-cream-700');
+        toggleBtn.classList.add('bg-cream-800', 'text-accent-warm');
+        showToast('已開啟隱藏房主控制台 👑', 'crown');
+      } else {
+        consoleEl.classList.add('hidden');
+        toggleBtn.classList.add('bg-cream-200', 'text-cream-700');
+        toggleBtn.classList.remove('bg-cream-800', 'text-accent-warm');
+        showToast('已隱藏房主控制台', 'eye-off');
+      }
+    }
+
+    // Copy Shareable Room Link
+    function copyShareLink() {
+      if (!currentRoom) return;
+
+      let shareUrl = '';
+      try {
+        const cleanHref = window.location.href.replace(/^blob:/, '');
+        const urlObj = new URL(cleanHref);
+        urlObj.searchParams.set('room', currentRoom);
+        shareUrl = urlObj.toString();
+      } catch (e) {
+        shareUrl = `房間代碼：${currentRoom}`;
+      }
+
+      const tempInput = document.createElement('input');
+      tempInput.value = shareUrl;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      try {
+        document.execCommand('copy');
+        showToast(`已複製房號連結 (${currentRoom})！快分享給好友吧`, 'check');
+      } catch (err) {
+        showToast(`房間代碼：${currentRoom}`, 'info');
+      }
+      document.body.removeChild(tempInput);
     }
 
     // API Interaction: Fetch Current Game State (GET)
@@ -482,33 +540,94 @@
       if (!currentRoom) return;
 
       try {
-        const response = await fetch(`${GAS_API_URL}?room=${encodeURIComponent(currentRoom)}`);
-        if (!response.ok) throw new Error("網路連線異常");
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(`${GAS_API_URL}?room=${encodeURIComponent(currentRoom)}&t=${Date.now()}`, {
+          method: 'GET',
+          redirect: 'follow',
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
         const data = await response.json();
+        setConnectionMode(false);
         updateGameUI(data);
       } catch (err) {
-        console.error("Fetch state error:", err);
+        console.warn("GAS GET 連線受限，自動切換至本機備援同步模式:", err);
+        setConnectionMode(true);
+        if (!localFallbackStore[currentRoom]) {
+          localFallbackStore[currentRoom] = { status: 'setup', question: '', answers: {} };
+        }
+        updateGameUI(localFallbackStore[currentRoom]);
       }
+    }
+
+    // 更新連線狀態顯示標籤
+    function setConnectionMode(offline) {
+      isOfflineFallback = offline;
+      const badge = document.getElementById('connection-badge');
+      if (!badge) return;
+      if (offline) {
+        badge.textContent = '本機備援模式';
+        badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300';
+      } else {
+        badge.textContent = '雲端已連線';
+        badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
+      }
+    }
+
+    // 本機備援狀態更新邏輯 (模擬後端 GAS doPost 行為)
+    function applyLocalFallbackAction(payload) {
+      if (!localFallbackStore[currentRoom]) {
+        localFallbackStore[currentRoom] = { status: 'setup', question: '', answers: {} };
+      }
+      const roomState = localFallbackStore[currentRoom];
+
+      if (payload.action === 'reset') {
+        roomState.status = 'setup';
+        roomState.question = '';
+        roomState.answers = {};
+      } else if (payload.action === 'set_question') {
+        roomState.status = 'playing';
+        roomState.question = payload.question;
+        roomState.answers = {};
+      } else if (payload.action === 'submit_answer') {
+        roomState.answers[payload.playerName] = payload.answer;
+      } else if (payload.action === 'reveal') {
+        roomState.status = 'revealed';
+      }
+      updateGameUI(roomState);
     }
 
     // Send Action Payload to GAS (POST)
     async function postGASAction(payload) {
+      payload.room = currentRoom;
+
+      // 同步更新本機備援資料，確保無縫銜接
+      applyLocalFallbackAction(payload);
+
+      if (isOfflineFallback) {
+        return;
+      }
+
       try {
-        payload.room = currentRoom;
-        // Standard text/plain or json mode to avoid CORS preflight issues with GAS
+        // 使用 no-cors 模式可確保就算 GAS 轉址不帶 CORS Header 也能順利寫入 Google 試算表
         await fetch(GAS_API_URL, {
           method: 'POST',
+          mode: 'no-cors',
           headers: {
             'Content-Type': 'text/plain;charset=utf-8'
           },
           body: JSON.stringify(payload)
         });
-        // Immediately trigger polling sync
-        setTimeout(fetchGameState, 300);
+        // 延遲一小段時間讓 Google 試算表寫入完成後再輪詢同步
+        setTimeout(fetchGameState, 600);
       } catch (err) {
-        console.error("POST action error:", err);
-        showToast("伺服器更新失敗，請重新再試", "alert-triangle");
+        console.warn("GAS POST 寫入異常，已保留於本機備援模式:", err);
+        setConnectionMode(true);
       }
     }
 
@@ -572,8 +691,12 @@
         document.getElementById('section-answer-form').classList.add('hidden');
         document.getElementById('section-reveal-grid').classList.remove('hidden');
 
-        // Render 3D Cards with Flip animation
-        renderFlipCards(answersObj, isStatusChanged);
+        // 僅在狀態剛切換為 revealed 或答案內容有更新時，才重新渲染 3D 卡片，避免輪詢閃爍
+        const currentAnswersJson = JSON.stringify(answersObj);
+        if (isStatusChanged || currentAnswersJson !== lastRenderedAnswersJson) {
+          lastRenderedAnswersJson = currentAnswersJson;
+          renderFlipCards(answersObj);
+        }
       }
     }
 
@@ -607,7 +730,7 @@
     }
 
     // Dynamic 3D Card Rendering & Flip Animation Trigger
-    function renderFlipCards(answersObj, shouldTriggerFlip) {
+    function renderFlipCards(answersObj) {
       const container = document.getElementById('cards-container');
       const players = Object.keys(answersObj);
 
@@ -620,10 +743,14 @@
         return;
       }
 
+      // 防止 XSS 注入的簡易跳脫函式
+      const escapeHTML = (str) => String(str).replace(/[&<>"']/g, (m) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+
       // Rebuild Card Elements
       container.innerHTML = players.map((name, idx) => {
         const ans = answersObj[name];
-        const delay = idx * 150; // Staggered flip effect delay
         return `
           <div class="h-40 perspective-1000">
             <div id="card-inner-${idx}" class="card-inner shadow-md hover:shadow-lg rounded-2xl border border-cream-200">
@@ -632,13 +759,13 @@
                 <div class="w-8 h-8 rounded-full bg-cream-100/60 flex items-center justify-center text-cream-700 mb-2">
                   <i data-lucide="help-circle" class="w-4 h-4"></i>
                 </div>
-                <div class="font-bold text-sm truncate w-full px-2">${name}</div>
-                <div class="text-[10px] text-cream-500 mt-1">點擊開牌</div>
+                <div class="font-bold text-sm truncate w-full px-2">${escapeHTML(name)}</div>
+                <div class="text-[10px] text-cream-500 mt-1">準備揭曉</div>
               </div>
               <!-- Back Face (Revealed Answer) -->
               <div class="card-back p-4 font-rounded">
-                <span class="text-[10px] font-bold text-accent-warm tracking-wider uppercase">${name}</span>
-                <p class="font-bold text-lg text-cream-800 my-auto break-all px-1 leading-snug">${ans}</p>
+                <span class="text-[10px] font-bold text-accent-warm tracking-wider uppercase truncate max-w-full">${escapeHTML(name)}</span>
+                <p class="font-bold text-lg text-cream-800 my-auto break-all px-1 leading-snug">${escapeHTML(ans)}</p>
                 <div class="w-full flex justify-end">
                   <i data-lucide="sparkles" class="w-3.5 h-3.5 text-accent-soft"></i>
                 </div>
@@ -646,7 +773,7 @@
             </div>
           </div>
         `;
-      }).exec();
+      }).join('');
 
       lucide.createIcons();
 
@@ -654,7 +781,7 @@
       setTimeout(() => {
         players.forEach((_, idx) => {
           const cardEl = document.getElementById(`card-inner-${idx}`);
-          if (cardEl) {
+          if (cardEl && cardEl.parentElement) {
             setTimeout(() => {
               cardEl.parentElement.classList.add('card-flipped');
             }, idx * 180); // Sequentially flip cards with 180ms delay
@@ -663,9 +790,6 @@
       }, 100);
     }
 
-    // Array helper to sanitize map join html
-    Array.prototype.exec = function() { return this.join(''); };
-
     // --- HOST ACTIONS ---
     function hostSetQuestion() {
       const q = document.getElementById('host-question-input').value.trim();
@@ -673,6 +797,7 @@
         showToast('請輸入題目內容！', 'alert-circle');
         return;
       }
+      lastRenderedAnswersJson = '';
       postGASAction({
         action: 'set_question',
         question: q
@@ -686,11 +811,38 @@
       showToast('指令已發出：同步全體 3D 開牌！', 'eye');
     }
 
+    // 改用二次點擊確認機制，取代瀏覽器容易阻擋的 confirm()
     function hostResetGame() {
-      if (confirm('確定要清空答案並重置房間狀態嗎？')) {
+      const btn = document.getElementById('btn-host-reset');
+      const btnText = btn.querySelector('span');
+
+      if (!btn.dataset.confirming) {
+        btn.dataset.confirming = 'true';
+        btn.classList.remove('bg-cream-700', 'hover:bg-cream-600');
+        btn.classList.add('bg-red-500', 'hover:bg-red-600', 'text-white');
+        btnText.textContent = '確定重置？';
+        showToast('請再點一次「確定重置？」以清空資料', 'alert-triangle');
+
+        resetConfirmTimeout = setTimeout(() => {
+          resetResetButtonState();
+        }, 3500);
+      } else {
+        clearTimeout(resetConfirmTimeout);
+        resetResetButtonState();
+        lastRenderedAnswersJson = '';
         postGASAction({ action: 'reset' });
-        showToast('房間狀態已重置為初始階段');
+        showToast('房間狀態已重置為初始階段', 'rotate-ccw');
       }
+    }
+
+    function resetResetButtonState() {
+      const btn = document.getElementById('btn-host-reset');
+      if (!btn) return;
+      const btnText = btn.querySelector('span');
+      delete btn.dataset.confirming;
+      btn.classList.add('bg-cream-700', 'hover:bg-cream-600');
+      btn.classList.remove('bg-red-500', 'hover:bg-red-600', 'text-white');
+      btnText.textContent = '重置狀態';
     }
   </script>
 </body>
